@@ -11,6 +11,7 @@ import {
 import { Header } from '@/components/header';
 import { PokeballLoading } from '@/components/pokeball-loading';
 import { getPokemons } from '@/integration/pokemonIntegration';
+import { useDatabase } from '@/context/DatabaseContext';
 import { Pokemon, Poder } from '@types/pokemon';
 import { getColor, Colors } from '@/constants/colors';
 import { TYPE_MAP, TYPE_ICONS } from '@/constants/pokemon';
@@ -39,6 +40,7 @@ const MY_TEAM_CARD_HEIGHT = 118;
 
 export default function Dashboard() {
     const { width } = useWindowDimensions();
+    const { pokemonRepository } = useDatabase();
     const [loading, setLoading] = useState(true);
     const [myTeam, setMyTeam] = useState<Pokemon[]>([]);
     const [randomPokemons, setRandomPokemons] = useState<Pokemon[]>([]);
@@ -48,7 +50,20 @@ export default function Dashboard() {
     useEffect(() => {
         async function load() {
             try {
-                const all = await getPokemons(151);
+                let all: Pokemon[];
+
+                const cached = await pokemonRepository.count();
+
+                if (cached === 0) {
+                    // Primeira execução: busca na API e persiste no SQLite
+                    const fetched = await getPokemons(151);
+                    await pokemonRepository.saveMany(fetched);
+                    all = fetched;
+                } else {
+                    // Dados já persistidos: lê direto do SQLite
+                    all = await pokemonRepository.getAll();
+                }
+
                 const shuffled = [...all].sort(() => Math.random() - 0.5);
                 setMyTeam(shuffled.slice(0, MY_TEAM_SIZE));
                 setRandomPokemons(shuffled.slice(MY_TEAM_SIZE, MY_TEAM_SIZE + POKEDEX_SIZE));
@@ -59,7 +74,7 @@ export default function Dashboard() {
             }
         }
         load();
-    }, []);
+    }, [pokemonRepository]);
 
     const renderMyTeamCard = (pokemon: Pokemon) => {
         const ptTypes = pokemon.tipos.map(mapType);

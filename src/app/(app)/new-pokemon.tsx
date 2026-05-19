@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { getPokemons } from '@/integration/pokemonIntegration';
+import { useDatabase } from '@/context/DatabaseContext';
 import { getColor, Colors, FIREWORK_COLORS } from '@/constants/colors';
 import { TYPE_MAP, TYPE_ICONS } from '@/constants/pokemon';
 import type { Pokemon, Poder } from '@types/pokemon';
@@ -61,6 +62,7 @@ function buildParticles(): ParticleConfig[] {
 
 export default function NewPokemonScreen() {
   const router = useRouter();
+  const { pokemonRepository } = useDatabase();
   const [phase, setPhase] = useState<Phase>('loading');
   const [pokemon, setPokemon] = useState<Pokemon | null>(null);
 
@@ -77,16 +79,27 @@ export default function NewPokemonScreen() {
   useEffect(() => {
     async function fetchPokemon() {
       try {
-        const all = await getPokemons(151);
-        const random = all[Math.floor(Math.random() * all.length)];
-        setPokemon(random);
-        startReveal(random);
+        // Tenta buscar diretamente do SQLite
+        let selected = await pokemonRepository.getRandom();
+
+        // Fallback: se o DB estiver vazio (acesso direto à tela),
+        // busca na API e persiste antes de continuar
+        if (!selected) {
+          const all = await getPokemons(151);
+          await pokemonRepository.saveMany(all);
+          selected = await pokemonRepository.getRandom();
+        }
+
+        if (!selected) throw new Error('Nenhum pokémon encontrado');
+
+        setPokemon(selected);
+        startReveal(selected);
       } catch {
         router.back();
       }
     }
     fetchPokemon();
-  }, []);
+  }, [pokemonRepository]);
 
   function fireParticles(particles: ParticleConfig[]) {
     Animated.parallel(

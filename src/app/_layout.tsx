@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/context/AuthContext";
+import { DatabaseProvider } from "@/context/DatabaseContext";
 import { Slot } from "expo-router";
 import { Platform } from "react-native";
 import { useEffect } from "react";
@@ -15,8 +16,10 @@ export default function Root() {
     }, []);
 
     return (
-        <AuthProvider>
-            <Slot />
-        </AuthProvider>
+        <DatabaseProvider>
+            <AuthProvider>
+                <Slot />
+            </AuthProvider>
+        </DatabaseProvider>
     );
 }
