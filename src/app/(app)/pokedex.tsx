@@ -13,7 +13,7 @@ import { Header } from '@/components/header';
 import { PokeballLoading } from '@/components/pokeball-loading';
 import { getColor, Colors } from '@/constants/colors';
 import { getPokemons } from '@/integration/pokemonIntegration';
-import { Pokemon, Poder } from '@types/pokemon';
+import { Pokemon, Poder } from '@/@types/pokemon';
 import { TYPE_MAP } from '@/constants/pokemon';
 
 const mapType = (t: string) => TYPE_MAP[t] ?? 'normal';

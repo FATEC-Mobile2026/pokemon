@@ -20,6 +20,15 @@ export const TYPE_ICONS: Record<string, string> = {
   voador: '🌬️', normal: '⭐',
 };
 
+export const STAT_ABBR: Record<string, string> = {
+    hp: 'HP',
+    attack: 'ATK',
+    defense: 'DEF',
+    'special-attack': 'SP.A',
+    'special-defense': 'SP.D',
+    speed: 'SPD',
+};
+
 export const VALID_USER = {
   name: 'kleber',
   password: 'kleber123',

@@ -12,18 +12,9 @@ import { Header } from '@/components/header';
 import { PokeballLoading } from '@/components/pokeball-loading';
 import { getPokemons } from '@/integration/pokemonIntegration';
 import { useDatabase } from '@/context/DatabaseContext';
-import { Pokemon, Poder } from '@types/pokemon';
+import { Pokemon, Poder } from '@/@types/pokemon';
 import { getColor, Colors } from '@/constants/colors';
-import { TYPE_MAP, TYPE_ICONS } from '@/constants/pokemon';
-
-const STAT_ABBR: Record<string, string> = {
-    hp: 'HP',
-    attack: 'ATK',
-    defense: 'DEF',
-    'special-attack': 'SP.A',
-    'special-defense': 'SP.D',
-    speed: 'SPD',
-};
+import { TYPE_MAP, TYPE_ICONS, STAT_ABBR } from '@/constants/pokemon';
 
 const mapType = (t: string) => TYPE_MAP[t] ?? 'normal';
 

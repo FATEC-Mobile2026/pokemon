@@ -15,7 +15,7 @@ import { getPokemons } from '@/integration/pokemonIntegration';
 import { useDatabase } from '@/context/DatabaseContext';
 import { getColor, Colors, FIREWORK_COLORS } from '@/constants/colors';
 import { TYPE_MAP, TYPE_ICONS } from '@/constants/pokemon';
-import type { Pokemon, Poder } from '@types/pokemon';
+import type { Pokemon, Poder } from '@/@types/pokemon';
 import { PokeballLoading } from '@/components/pokeball-loading';
 
 const PARTICLE_COUNT = 30;
