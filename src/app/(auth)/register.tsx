@@ -16,12 +16,12 @@ import { Button } from '@/components/button';
 import { Input } from '@/components/input';
 import { Alert } from '@/components/alert';
 import { Pokeball } from '@/components/pokeball';
-import { PokeballLoading } from '@/components/pokeball-loading';
 import { Colors } from '@/constants/colors';
 
-export default function Index() {
-    const [name, setName] = useState<string>('');
-    const [senha, setSenha] = useState<string>('');
+export default function Register() {
+    const [nome, setNome] = useState('');
+    const [senha, setSenha] = useState('');
+    const [confirmacaoSenha, setConfirmacaoSenha] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const [isAlertVisible, setIsAlertVisible] = useState(false);
@@ -31,43 +31,47 @@ export default function Index() {
         type: 'error' as 'success' | 'error' | 'warning' | 'info',
     });
 
-    const { signIn, signOut } = useAuth();
+    const { signUp } = useAuth();
     const { userRepository } = useDatabase();
 
-    async function validateCredentials() {
-        if (!name.trim() || !senha.trim()) {
-            setAlertData({
-                title: 'Campos obrigatórios',
-                message: 'Por favor, preencha o nome e a senha.',
-                type: 'warning',
-            });
-            setIsAlertVisible(true);
+    function showAlert(title: string, message: string, type: typeof alertData.type) {
+        setAlertData({ title, message, type });
+        setIsAlertVisible(true);
+    }
+
+    async function handleRegister() {
+        if (!nome.trim() || !senha.trim() || !confirmacaoSenha.trim()) {
+            showAlert('Campos obrigatórios', 'Preencha todos os campos.', 'warning');
             return;
         }
 
-        const result = await signIn(name, senha);
-
-        if (result.ok) {
-            if (result.userId) {
-                await userRepository.saveUserId(name.trim(), result.userId);
-            }
-            setIsLoading(true);
-            setTimeout(() => {
-                router.push('/dashboard');
-            }, 5000);
-        } else {
-            setAlertData({
-                title: 'Acesso negado',
-                message: 'Nome ou senha incorretos. Tente novamente.',
-                type: 'error',
-            });
-            setIsAlertVisible(true);
-            signOut();
+        if (senha.trim() !== confirmacaoSenha.trim()) {
+            showAlert('Senhas diferentes', 'A senha e a confirmação não coincidem.', 'error');
+            return;
         }
-    }
 
-    if (isLoading) {
-        return <PokeballLoading />;
+        if (senha.trim().length < 4) {
+            showAlert('Senha fraca', 'A senha deve ter pelo menos 4 caracteres.', 'warning');
+            return;
+        }
+
+        setIsLoading(true);
+        const result = await signUp(nome, senha);
+        setIsLoading(false);
+
+        if (!result.ok) {
+            showAlert('Erro', result.error ?? 'Não foi possível criar o usuário.', 'error');
+            return;
+        }
+
+        if (result.userId) {
+            await userRepository.saveUserId(nome.trim(), result.userId);
+        }
+
+        showAlert('Usuário criado', 'Conta criada com sucesso! Faça login.', 'success');
+        setTimeout(() => {
+            router.back();
+        }, 1500);
     }
 
     return (
@@ -89,20 +93,18 @@ export default function Index() {
                         <Pokeball size={Platform.OS === 'web' ? 28 : 22} />
                         <Text style={styles.logoText}>PokeBattle</Text>
                     </View>
-                    <Text style={styles.subtitle}>
-                        Participe de batalhas épicas entre pokémons
-                    </Text>
+                    <Text style={styles.subtitle}>Crie sua conta para entrar na batalha</Text>
                 </View>
 
                 <View style={styles.card}>
-                    <Text style={styles.cardTitle}>Autenticação</Text>
+                    <Text style={styles.cardTitle}>Criar Usuário</Text>
 
                     <View style={styles.fieldGroup}>
                         <Text style={styles.label}>Nome</Text>
                         <Input
                             placeholder=""
-                            onChangeText={setName}
-                            value={name}
+                            onChangeText={setNome}
+                            value={nome}
                             autoCorrect={false}
                         />
                     </View>
@@ -117,11 +119,26 @@ export default function Index() {
                         />
                     </View>
 
-                    <Button title="Entrar" onPress={validateCredentials} style={{ marginTop: 8 }} />
+                    <View style={styles.fieldGroup}>
+                        <Text style={styles.label}>Confirmação da Senha</Text>
+                        <Input
+                            placeholder=""
+                            secureTextEntry
+                            onChangeText={setConfirmacaoSenha}
+                            value={confirmacaoSenha}
+                        />
+                    </View>
 
                     <Button
-                        title="Criar Usuário"
-                        onPress={() => router.push('/(auth)/register')}
+                        title={isLoading ? 'Criando...' : 'Criar Conta'}
+                        onPress={handleRegister}
+                        disabled={isLoading}
+                        style={{ marginTop: 8 }}
+                    />
+
+                    <Button
+                        title="Voltar ao Login"
+                        onPress={() => router.back()}
                         style={styles.btnSecondary}
                     />
                 </View>

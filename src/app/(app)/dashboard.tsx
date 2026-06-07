@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import { Header } from '@/components/header';
 import { PokeballLoading } from '@/components/pokeball-loading';
-import { getPokemons } from '@/integration/pokemonIntegration';
+import { getTeam } from '@/integration/teamIntegration';
 import { useDatabase } from '@/context/DatabaseContext';
+import { useAuth } from '@/context/AuthContext';
 import { Pokemon, Poder } from '@/@types/pokemon';
 import { getColor, Colors } from '@/constants/colors';
 import { TYPE_MAP, TYPE_ICONS, STAT_ABBR } from '@/constants/pokemon';
@@ -31,33 +32,24 @@ const MY_TEAM_CARD_HEIGHT = 118;
 
 export default function Dashboard() {
     const { width } = useWindowDimensions();
-    const { pokemonRepository } = useDatabase();
+    const { userRepository } = useDatabase();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [myTeam, setMyTeam] = useState<Pokemon[]>([]);
-    const [randomPokemons, setRandomPokemons] = useState<Pokemon[]>([]);
+    const [myPokemons, setMyPokemons] = useState<Pokemon[]>([]);
 
     const cardWidth = Math.floor((width - GRID_H_PAD * 2 - CARD_GAP * (COLS - 1)) / COLS);
 
     useEffect(() => {
         async function load() {
             try {
-                let all: Pokemon[];
+                if (!user) return;
+                const userId = await userRepository.getUserId(user);
+                if (!userId) return;
 
-                const cached = await pokemonRepository.count();
-
-                if (cached === 0) {
-                    // Primeira execução: busca na API e persiste no SQLite
-                    const fetched = await getPokemons(151);
-                    await pokemonRepository.saveMany(fetched);
-                    all = fetched;
-                } else {
-                    // Dados já persistidos: lê direto do SQLite
-                    all = await pokemonRepository.getAll();
-                }
-
-                const shuffled = [...all].sort(() => Math.random() - 0.5);
-                setMyTeam(shuffled.slice(0, MY_TEAM_SIZE));
-                setRandomPokemons(shuffled.slice(MY_TEAM_SIZE, MY_TEAM_SIZE + POKEDEX_SIZE));
+                const { team, capture } = await getTeam(userId);
+                setMyTeam(team);
+                setMyPokemons(capture);
             } catch (e) {
                 console.error('Erro ao carregar pokémons:', e);
             } finally {
@@ -65,7 +57,7 @@ export default function Dashboard() {
             }
         }
         load();
-    }, [pokemonRepository]);
+    }, [user, userRepository]);
 
     const renderMyTeamCard = (pokemon: Pokemon) => {
         const ptTypes = pokemon.tipos.map(mapType);
@@ -228,14 +220,14 @@ export default function Dashboard() {
                 <View style={[styles.sectionHeader, styles.sectionHeaderList]}>
                     <View style={styles.sectionAccent} />
                     <Text style={styles.sectionTitle}>MEUS POKÉMONS</Text>
-                    {!loading && <Text style={styles.sectionSub}>25 aleatórios</Text>}
+                    {!loading && <Text style={styles.sectionSub}>{myPokemons.length} capturados</Text>}
                 </View>
 
                 {loading ? (
                     <PokeballLoading />
                 ) : (
                     <View style={[styles.grid, { paddingHorizontal: GRID_H_PAD, gap: CARD_GAP }]}>
-                        {randomPokemons.map(pokemon => renderGridCard(pokemon))}
+                        {myPokemons.map(pokemon => renderGridCard(pokemon))}
                     </View>
                 )}
 

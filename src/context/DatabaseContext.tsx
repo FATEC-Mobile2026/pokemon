@@ -6,10 +6,15 @@ import {
   createPokemonRepository,
   PokemonRepository,
 } from '@/database/repositories/pokemonRepository';
+import {
+  createUserRepository,
+  UserRepository,
+} from '@/database/repositories/userRepository';
 import { PokeballLoading } from '@/components/pokeball-loading';
 
 interface DatabaseContextData {
   pokemonRepository: PokemonRepository;
+  userRepository: UserRepository;
 }
 
 const DatabaseContext = createContext<DatabaseContextData>(null!);
@@ -24,6 +29,7 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
       await runMigrations(db);
       value.current = {
         pokemonRepository: createPokemonRepository(db),
+        userRepository: createUserRepository(db),
       };
       setStatus('ready');
     }

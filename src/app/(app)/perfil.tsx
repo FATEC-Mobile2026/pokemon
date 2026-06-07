@@ -1,14 +1,38 @@
-import React from 'react';
-import { View, Text, StyleSheet, Platform, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Platform, Image, ActivityIndicator } from 'react-native';
 import { Header } from '@/components/header';
 import { Colors } from '@/constants/colors';
+import { getStats, StatsResponse } from '@/integration/authIntegration';
+import { useDatabase } from '@/context/DatabaseContext';
+import { useAuth } from '@/context/AuthContext';
 
 const isWeb = Platform.OS === 'web';
 
-const XP_TOTAL = 100;
-const XP_ATUAL = 12;
-
 export default function Perfil() {
+    const { userRepository } = useDatabase();
+    const { user } = useAuth();
+    const [stats, setStats] = useState<StatsResponse | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function load() {
+            try {
+                if (!user) return;
+                const userId = await userRepository.getUserId(user);
+                if (!userId) return;
+                const data = await getStats(userId);
+                setStats(data);
+            } catch (e) {
+                console.error('Erro ao carregar stats:', e);
+            } finally {
+                setLoading(false);
+            }
+        }
+        load();
+    }, [user, userRepository]);
+
+    const total = (stats?.vitorias ?? 0) + (stats?.derrotas ?? 0);
+
     return (
         <View style={styles.wrapper}>
             <Header />
@@ -24,44 +48,51 @@ export default function Perfil() {
                     </View>
 
                     {/* Nome */}
-                    <Text style={styles.name}>Kleber</Text>
+                    <Text style={styles.name}>{stats?.username ?? user ?? '...'}</Text>
                     <Text style={styles.role}>Treinador Pokémon</Text>
 
                     <View style={styles.divider} />
 
-                    {/* Stats */}
-                    <View style={styles.statsBox}>
-                        {/* Experiência */}
-                        <View style={styles.statRow}>
-                            <Text style={styles.statLabel}>Experiência</Text>
-                            <Text style={styles.statValue}>{XP_ATUAL}/{XP_TOTAL}</Text>
-                        </View>
-                        <View style={styles.xpBarTrack}>
-                            <View style={[styles.xpBarFill, { width: `${(XP_ATUAL / XP_TOTAL) * 100}%` as any }]} />
-                        </View>
-
-                        <View style={styles.statDivider} />
-
-                        {/* Vitórias */}
-                        <View style={styles.statRow}>
-                            <View style={styles.statLabelRow}>
-                                <Text style={styles.statIcon}>🏆</Text>
-                                <Text style={styles.statLabel}>Vitórias</Text>
+                    {loading ? (
+                        <ActivityIndicator color={Colors.btnPrimary} />
+                    ) : (
+                        <View style={styles.statsBox}>
+                            {/* Experiência */}
+                            <View style={styles.statRow}>
+                                <Text style={styles.statLabel}>Experiência</Text>
+                                <Text style={styles.statValue}>Nível {stats?.level ?? 0}</Text>
                             </View>
-                            <Text style={[styles.statValue, styles.win]}>8/10</Text>
-                        </View>
-
-                        <View style={styles.statDivider} />
-
-                        {/* Derrotas */}
-                        <View style={styles.statRow}>
-                            <View style={styles.statLabelRow}>
-                                <Text style={styles.statIcon}>💀</Text>
-                                <Text style={styles.statLabel}>Derrotas</Text>
+                            <View style={styles.xpBarTrack}>
+                                <View style={[styles.xpBarFill, { width: `${Math.min((stats?.level ?? 0), 100)}%` as any }]} />
                             </View>
-                            <Text style={[styles.statValue, styles.loss]}>2/10</Text>
+
+                            <View style={styles.statDivider} />
+
+                            {/* Vitórias */}
+                            <View style={styles.statRow}>
+                                <View style={styles.statLabelRow}>
+                                    <Text style={styles.statIcon}>🏆</Text>
+                                    <Text style={styles.statLabel}>Vitórias</Text>
+                                </View>
+                                <Text style={[styles.statValue, styles.win]}>
+                                    {stats?.vitorias ?? 0}{total > 0 ? `/${total}` : ''}
+                                </Text>
+                            </View>
+
+                            <View style={styles.statDivider} />
+
+                            {/* Derrotas */}
+                            <View style={styles.statRow}>
+                                <View style={styles.statLabelRow}>
+                                    <Text style={styles.statIcon}>💀</Text>
+                                    <Text style={styles.statLabel}>Derrotas</Text>
+                                </View>
+                                <Text style={[styles.statValue, styles.loss]}>
+                                    {stats?.derrotas ?? 0}{total > 0 ? `/${total}` : ''}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
+                    )}
                 </View>
             </View>
         </View>
@@ -130,6 +161,7 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         letterSpacing: 1,
         marginTop: 4,
+        textTransform: 'capitalize',
     },
     role: {
         color: Colors.whiteAlpha['35'],

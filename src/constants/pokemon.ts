@@ -30,8 +30,8 @@ export const STAT_ABBR: Record<string, string> = {
 };
 
 export const VALID_USER = {
-  name: 'kleber',
-  password: 'kleber123',
+  name: 'admin',
+  password: 'admin',
 };
 
 export function validateLogin(name: string, password: string): boolean {
