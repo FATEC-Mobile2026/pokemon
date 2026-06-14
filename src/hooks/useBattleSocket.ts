@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 
-const WS_BASE = `${process.env.EXPO_PUBLIC_WS_URL}/ws/battle`;
+function buildWsBase() {
+  const raw = process.env.EXPO_PUBLIC_WS_URL ?? '';
+  const secure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+  return `${secure ? raw.replace(/^ws:/, 'wss:') : raw}/ws/battle`;
+}
+const WS_BASE = buildWsBase();
 const BACKOFF_MS = [1000, 3000, 9000];
 
 export type BattleSocketEvent = { type: string; payload: string } & Record<string, any>;
