@@ -32,14 +32,6 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
-      - name: Relocate SQLite WASM out of node_modules path
-        run: |
-          WASM_SRC=$(find ./dist/assets/node_modules -name "*.wasm" | head -1)
-          WASM_NAME=$(basename "$WASM_SRC")
-          mkdir -p ./dist/assets/wasm
-          cp "$WASM_SRC" ./dist/assets/wasm/
-          find ./dist/_expo/static/js/web -name "worker-*.js" -exec sed -i "s|assets/node_modules/expo-sqlite/web/wa-sqlite/${WASM_NAME}|/assets/wasm/${WASM_NAME}|g" {} +
-
       - name: Prepare static deploy config
         run: |
           cat > ./dist/vercel.json << 'EOF'

@@ -3,22 +3,18 @@ import { View, Text, StyleSheet, Platform, Image, ActivityIndicator } from 'reac
 import { Header } from '@/components/header';
 import { Colors } from '@/constants/colors';
 import { getStats, StatsResponse } from '@/integration/authIntegration';
-import { useDatabase } from '@/context/DatabaseContext';
 import { useAuth } from '@/context/AuthContext';
 
 const isWeb = Platform.OS === 'web';
 
 export default function Perfil() {
-    const { userRepository } = useDatabase();
-    const { user } = useAuth();
+    const { user, userId } = useAuth();
     const [stats, setStats] = useState<StatsResponse | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         async function load() {
             try {
-                if (!user) return;
-                const userId = await userRepository.getUserId(user);
                 if (!userId) return;
                 const data = await getStats(userId);
                 setStats(data);
@@ -29,7 +25,7 @@ export default function Perfil() {
             }
         }
         load();
-    }, [user, userRepository]);
+    }, [userId]);
 
     return (
         <View style={styles.wrapper}>

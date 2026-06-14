@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { useDatabase } from '@/context/DatabaseContext';
 
 import {
     View,
@@ -32,7 +31,6 @@ export default function Register() {
     });
 
     const { signUp } = useAuth();
-    const { userRepository } = useDatabase();
 
     function showAlert(title: string, message: string, type: typeof alertData.type) {
         setAlertData({ title, message, type });
@@ -62,10 +60,6 @@ export default function Register() {
         if (!result.ok) {
             showAlert('Erro', result.error ?? 'Não foi possível criar o usuário.', 'error');
             return;
-        }
-
-        if (result.userId) {
-            await userRepository.saveUserId(nome.trim(), result.userId);
         }
 
         showAlert('Usuário criado', 'Conta criada com sucesso! Faça login.', 'success');

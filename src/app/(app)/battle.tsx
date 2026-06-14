@@ -6,7 +6,6 @@ import {
 import { Header } from '@/components/header';
 import { Colors, getColor } from '@/constants/colors';
 import { getTeam } from '@/integration/teamIntegration';
-import { useDatabase } from '@/context/DatabaseContext';
 import { useAuth } from '@/context/AuthContext';
 import { Pokemon } from '@/@types/pokemon';
 import { TYPE_MAP, STAT_ABBR } from '@/constants/pokemon';
@@ -108,8 +107,7 @@ const OPPONENT_TEAM: Pokemon[] = [
 ];
 
 export default function Battle() {
-    const { userRepository } = useDatabase();
-    const { user } = useAuth();
+    const { userId } = useAuth();
 
     const [loading, setLoading] = useState(true);
     const [team, setTeam] = useState<Pokemon[]>([]);
@@ -132,8 +130,6 @@ export default function Battle() {
     useEffect(() => {
         async function load() {
             try {
-                if (!user) return;
-                const userId = await userRepository.getUserId(user);
                 if (!userId) return;
                 const { team: t } = await getTeam(userId);
                 setTeam(t);
@@ -145,7 +141,7 @@ export default function Battle() {
             }
         }
         load();
-    }, [user, userRepository]);
+    }, [userId]);
 
     useEffect(() => {
         return () => {

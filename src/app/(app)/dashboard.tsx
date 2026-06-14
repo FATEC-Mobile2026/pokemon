@@ -13,7 +13,6 @@ import {
 import { Header } from '@/components/header';
 import { PokeballLoading } from '@/components/pokeball-loading';
 import { getTeam, updateTeam } from '@/integration/teamIntegration';
-import { useDatabase } from '@/context/DatabaseContext';
 import { useAuth } from '@/context/AuthContext';
 import { Pokemon, Poder } from '@/@types/pokemon';
 import { getColor, Colors } from '@/constants/colors';
@@ -32,28 +31,22 @@ const MY_TEAM_CARD_HEIGHT = 118;
 
 export default function Dashboard() {
     const { width } = useWindowDimensions();
-    const { userRepository } = useDatabase();
-    const { user } = useAuth();
+    const { user, userId } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [myTeam, setMyTeam] = useState<Pokemon[]>([]);
     const [myPokemons, setMyPokemons] = useState<Pokemon[]>([]);
 
-    // Selection state
     const [selectedCaptured, setSelectedCaptured] = useState<Pokemon | null>(null);
     const [selectedTeamIdx, setSelectedTeamIdx] = useState<number | null>(null);
 
     const cardWidth = Math.floor((width - GRID_H_PAD * 2 - CARD_GAP * (COLS - 1)) / COLS);
-    const userId = React.useRef<string | null>(null);
 
     useEffect(() => {
         async function load() {
             try {
-                if (!user) return;
-                const id = await userRepository.getUserId(user);
-                if (!id) return;
-                userId.current = id;
-                const { team, capture } = await getTeam(id);
+                if (!userId) return;
+                const { team, capture } = await getTeam(userId);
                 setMyTeam(team);
                 setMyPokemons(capture);
             } catch (e) {
@@ -63,7 +56,7 @@ export default function Dashboard() {
             }
         }
         load();
-    }, [user, userRepository]);
+    }, [userId]);
 
     const clearSelection = useCallback(() => {
         setSelectedCaptured(null);
@@ -75,11 +68,11 @@ export default function Dashboard() {
         removedPokemon?: string,
         newPokemon?: string
     ) => {
-        if (!userId.current) return;
+        if (!userId) return;
         setSaving(true);
         try {
             await updateTeam(
-                userId.current,
+                userId,
                 newTeam ? newTeam.map(p => p.index) : null,
                 removedPokemon,
                 newPokemon

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
-import { useDatabase } from '@/context/DatabaseContext';
 
 import {
     View,
@@ -32,7 +31,6 @@ export default function Index() {
     });
 
     const { signIn, signOut } = useAuth();
-    const { userRepository } = useDatabase();
 
     async function validateCredentials() {
         if (!name.trim() || !senha.trim()) {
@@ -48,9 +46,6 @@ export default function Index() {
         const result = await signIn(name, senha);
 
         if (result.ok) {
-            if (result.userId) {
-                await userRepository.saveUserId(name.trim(), result.userId);
-            }
             setIsLoading(true);
             setTimeout(() => {
                 router.push('/dashboard');
