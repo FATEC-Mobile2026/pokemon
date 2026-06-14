@@ -38,7 +38,7 @@ jobs:
           WASM_NAME=$(basename "$WASM_SRC")
           mkdir -p ./dist/assets/wasm
           cp "$WASM_SRC" ./dist/assets/wasm/
-          find ./dist/_expo/static/js/web -name "worker-*.js" -exec sed -i "s|assets/node_modules/expo-sqlite/web/wa-sqlite/${WASM_NAME}|assets/wasm/${WASM_NAME}|g" {} +
+          find ./dist/_expo/static/js/web -name "worker-*.js" -exec sed -i "s|assets/node_modules/expo-sqlite/web/wa-sqlite/${WASM_NAME}|/assets/wasm/${WASM_NAME}|g" {} +
 
       - name: Prepare static deploy config
         run: |
