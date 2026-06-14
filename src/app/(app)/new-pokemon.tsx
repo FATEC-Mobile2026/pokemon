@@ -11,8 +11,8 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { getPokemons } from '@/integration/pokemonIntegration';
-import { useDatabase } from '@/context/DatabaseContext';
+import { getPokemonById } from '@/integration/pokemonIntegration';
+import { useBattle } from '@/context/BattleContext';
 import { getColor, Colors, FIREWORK_COLORS } from '@/constants/colors';
 import { TYPE_MAP, TYPE_ICONS } from '@/constants/pokemon';
 import type { Pokemon, Poder } from '@/@types/pokemon';
@@ -62,7 +62,7 @@ function buildParticles(): ParticleConfig[] {
 
 export default function NewPokemonScreen() {
   const router = useRouter();
-  const { pokemonRepository } = useDatabase();
+  const { result, resetBattle } = useBattle();
   const [phase, setPhase] = useState<Phase>('loading');
   const [pokemon, setPokemon] = useState<Pokemon | null>(null);
 
@@ -77,29 +77,18 @@ export default function NewPokemonScreen() {
   const particlesRef2 = useRef<ParticleConfig[]>(buildParticles());
 
   useEffect(() => {
-    async function fetchPokemon() {
-      try {
-        // Tenta buscar diretamente do SQLite
-        let selected = await pokemonRepository.getRandom();
-
-        // Fallback: se o DB estiver vazio (acesso direto à tela),
-        // busca na API e persiste antes de continuar
-        if (!selected) {
-          const all = await getPokemons(151);
-          await pokemonRepository.saveMany(all);
-          selected = await pokemonRepository.getRandom();
-        }
-
-        if (!selected) throw new Error('Nenhum pokémon encontrado');
-
-        setPokemon(selected);
-        startReveal(selected);
-      } catch {
-        router.back();
-      }
+    const pokemonId = result?.pokemonId;
+    if (!pokemonId) {
+      router.replace('/(app)/dashboard' as any);
+      return;
     }
-    fetchPokemon();
-  }, [pokemonRepository]);
+    getPokemonById(pokemonId)
+      .then(p => {
+        setPokemon(p);
+        startReveal(p);
+      })
+      .catch(() => router.replace('/(app)/dashboard' as any));
+  }, []);
 
   function fireParticles(particles: ParticleConfig[]) {
     Animated.parallel(
@@ -311,7 +300,7 @@ export default function NewPokemonScreen() {
       <Animated.View style={{ opacity: btnOpacity }}>
         <TouchableOpacity
           style={[styles.btn, { borderColor: colors.accent }]}
-          onPress={() => router.back()}
+          onPress={() => { resetBattle(); router.replace('/(app)/dashboard' as any); }}
           activeOpacity={0.7}
         >
           <Text style={[styles.btnText, { color: colors.accent }]}>CONTINUAR</Text>

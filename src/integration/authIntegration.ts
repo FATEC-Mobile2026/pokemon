@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://lnh1dhp1mj.execute-api.us-east-1.amazonaws.com/api-pokemon/auth/v1',
+  baseURL: `${process.env.EXPO_PUBLIC_API_URL}/api-pokemon/auth/v1`,
 });
 
 export type AuthRequest = {

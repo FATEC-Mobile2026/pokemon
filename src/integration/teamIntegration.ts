@@ -2,12 +2,9 @@ import axios from 'axios';
 import { Pokemon } from '../@types/pokemon';
 
 const api = axios.create({
-  baseURL: 'https://lnh1dhp1mj.execute-api.us-east-1.amazonaws.com/api-pokemon/pokemon/v1',
+  baseURL: `${process.env.EXPO_PUBLIC_API_URL}/api-pokemon/pokemon/v1`,
 });
 
-const localApi = axios.create({
-  baseURL: 'http://localhost:8080/api-pokemon/pokemon/v1',
-});
 
 type ApiPokemon = {
   index: string;
@@ -47,15 +44,12 @@ export const getTeam = async (userId: string): Promise<TeamData> => {
 
 export const updateTeam = async (
   userId: string,
-  removedPokemon: string,
-  newPokemon: string
+  teamOrder: string[] | null,
+  removedPokemon?: string,
+  newPokemon?: string
 ): Promise<void> => {
-  await localApi.put('/team', null, {
-    params: {
-      'user-id': userId,
-      'removed-pokemon': removedPokemon,
-      'new-pokemon': newPokemon,
-    },
+  await api.put('/team', { teamOrder, removedPokemon, newPokemon }, {
+    params: { 'user-id': userId },
   });
 };
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -7,10 +7,12 @@ import {
     Platform,
     useWindowDimensions,
     Image,
+    TouchableOpacity,
+    ActivityIndicator,
 } from 'react-native';
 import { Header } from '@/components/header';
 import { PokeballLoading } from '@/components/pokeball-loading';
-import { getTeam } from '@/integration/teamIntegration';
+import { getTeam, updateTeam } from '@/integration/teamIntegration';
 import { useDatabase } from '@/context/DatabaseContext';
 import { useAuth } from '@/context/AuthContext';
 import { Pokemon, Poder } from '@/@types/pokemon';
@@ -25,8 +27,6 @@ const COLS = 2;
 const CARD_GAP = 10;
 const GRID_H_PAD = 16;
 
-const MY_TEAM_SIZE = 5;
-const POKEDEX_SIZE = 25;
 const MY_TEAM_CARD_WIDTH = 130;
 const MY_TEAM_CARD_HEIGHT = 118;
 
@@ -35,19 +35,25 @@ export default function Dashboard() {
     const { userRepository } = useDatabase();
     const { user } = useAuth();
     const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [myTeam, setMyTeam] = useState<Pokemon[]>([]);
     const [myPokemons, setMyPokemons] = useState<Pokemon[]>([]);
 
+    // Selection state
+    const [selectedCaptured, setSelectedCaptured] = useState<Pokemon | null>(null);
+    const [selectedTeamIdx, setSelectedTeamIdx] = useState<number | null>(null);
+
     const cardWidth = Math.floor((width - GRID_H_PAD * 2 - CARD_GAP * (COLS - 1)) / COLS);
+    const userId = React.useRef<string | null>(null);
 
     useEffect(() => {
         async function load() {
             try {
                 if (!user) return;
-                const userId = await userRepository.getUserId(user);
-                if (!userId) return;
-
-                const { team, capture } = await getTeam(userId);
+                const id = await userRepository.getUserId(user);
+                if (!id) return;
+                userId.current = id;
+                const { team, capture } = await getTeam(id);
                 setMyTeam(team);
                 setMyPokemons(capture);
             } catch (e) {
@@ -59,23 +65,115 @@ export default function Dashboard() {
         load();
     }, [user, userRepository]);
 
-    const renderMyTeamCard = (pokemon: Pokemon) => {
+    const clearSelection = useCallback(() => {
+        setSelectedCaptured(null);
+        setSelectedTeamIdx(null);
+    }, []);
+
+    const callUpdateTeam = useCallback(async (
+        newTeam: Pokemon[] | null,
+        removedPokemon?: string,
+        newPokemon?: string
+    ) => {
+        if (!userId.current) return;
+        setSaving(true);
+        try {
+            await updateTeam(
+                userId.current,
+                newTeam ? newTeam.map(p => p.index) : null,
+                removedPokemon,
+                newPokemon
+            );
+        } catch (e) {
+            console.error('Erro ao salvar time:', e);
+        } finally {
+            setSaving(false);
+        }
+    }, []);
+
+    const handleTeamCardPress = useCallback((pokemon: Pokemon, index: number) => {
+        // If a captured pokemon is selected → replace this team slot
+        if (selectedCaptured) {
+            const newTeam = [...myTeam];
+            const displaced = newTeam[index];
+            newTeam[index] = selectedCaptured;
+            setMyTeam(newTeam);
+            setMyPokemons(prev => [
+                ...prev.filter(p => p.index !== selectedCaptured.index),
+                displaced,
+            ]);
+            clearSelection();
+            callUpdateTeam(null, displaced.index, selectedCaptured.index);
+            return;
+        }
+
+        // If another team slot is already selected → swap positions
+        if (selectedTeamIdx !== null && selectedTeamIdx !== index) {
+            const newTeam = [...myTeam];
+            [newTeam[selectedTeamIdx], newTeam[index]] = [newTeam[index], newTeam[selectedTeamIdx]];
+            setMyTeam(newTeam);
+            clearSelection();
+            callUpdateTeam(newTeam);
+            return;
+        }
+
+        // Toggle selection for reorder
+        if (selectedTeamIdx === index) {
+            setSelectedTeamIdx(null);
+        } else {
+            setSelectedTeamIdx(index);
+            setSelectedCaptured(null);
+        }
+    }, [selectedCaptured, selectedTeamIdx, myTeam, clearSelection, callUpdateTeam]);
+
+    const handleCapturedCardPress = useCallback((pokemon: Pokemon) => {
+        // Toggle selection
+        if (selectedCaptured?.index === pokemon.index) {
+            setSelectedCaptured(null);
+        } else {
+            setSelectedCaptured(pokemon);
+            setSelectedTeamIdx(null);
+        }
+    }, [selectedCaptured]);
+
+    const renderMyTeamCard = (pokemon: Pokemon, index: number) => {
         const ptTypes = pokemon.tipos.map(mapType);
         const colors = getColor(ptTypes);
-        const hpStat = pokemon.poderes.find(p => p.nome === 'hp');
-        const hp = hpStat?.forca ?? 0;
+        const hp = pokemon.poderes.find(p => p.nome === 'hp')?.forca ?? 0;
+
+        const isSelectedForReorder = selectedTeamIdx === index;
+        const isTargetForSwap = selectedCaptured !== null;
+
+        const borderColor = isSelectedForReorder
+            ? Colors.btnPrimary
+            : isTargetForSwap
+                ? Colors.game.win
+                : colors.accent;
 
         return (
-            <View
+            <TouchableOpacity
                 key={pokemon.index}
+                activeOpacity={0.75}
+                onPress={() => handleTeamCardPress(pokemon, index)}
                 style={[
                     styles.myTeamCard,
-                    { borderColor: colors.accent, shadowColor: colors.accent },
+                    { borderColor, shadowColor: borderColor },
+                    isSelectedForReorder && styles.selectedCard,
+                    isTargetForSwap && styles.swapTargetCard,
                 ]}
             >
+                {isSelectedForReorder && (
+                    <View style={styles.selectionBadge}>
+                        <Text style={styles.selectionBadgeText}>↕</Text>
+                    </View>
+                )}
+                {isTargetForSwap && (
+                    <View style={[styles.selectionBadge, styles.swapBadge]}>
+                        <Text style={styles.selectionBadgeText}>⇄</Text>
+                    </View>
+                )}
                 <View style={[styles.shimmerStrip, { backgroundColor: colors.accent + '18' }]} />
                 <View style={[styles.innerCard, { backgroundColor: colors.bg }]}>
-                    {/* Nome + HP */}
                     <View style={[styles.topBar, { backgroundColor: colors.accent + '22', borderBottomColor: colors.accent + '55' }]}>
                         <Text style={[styles.pokeName, { color: Colors.white }]} numberOfLines={1}>
                             {pokemon.nome}
@@ -85,7 +183,6 @@ export default function Dashboard() {
                             <Text style={[styles.hpValue, { color: colors.accent }]}>{hp}</Text>
                         </View>
                     </View>
-                    {/* Imagem */}
                     <View style={[
                         styles.imageWrapper,
                         styles.myTeamImageWrapper,
@@ -100,32 +197,36 @@ export default function Dashboard() {
                         />
                     </View>
                 </View>
-                <View style={[styles.glowRing, { borderColor: colors.accent + '22' }]} />
-            </View>
+                <View style={[styles.glowRing, { borderColor: borderColor + '33' }]} />
+            </TouchableOpacity>
         );
     };
 
     const renderGridCard = (pokemon: Pokemon) => {
         const ptTypes = pokemon.tipos.map(mapType);
         const colors = getColor(ptTypes);
-        const hpStat = pokemon.poderes.find(p => p.nome === 'hp');
-        const hp = hpStat?.forca ?? 0;
+        const hp = pokemon.poderes.find(p => p.nome === 'hp')?.forca ?? 0;
+        const isSelected = selectedCaptured?.index === pokemon.index;
 
         return (
-            <View
+            <TouchableOpacity
                 key={pokemon.index}
+                activeOpacity={0.75}
+                onPress={() => handleCapturedCardPress(pokemon)}
                 style={[
                     styles.outerFrame,
-                    { width: cardWidth, borderColor: colors.accent, shadowColor: colors.accent },
+                    { width: cardWidth, borderColor: isSelected ? Colors.btnPrimary : colors.accent, shadowColor: colors.accent },
+                    isSelected && styles.selectedCard,
                 ]}
             >
-                {/* holographic shimmer strip */}
+                {isSelected && (
+                    <View style={styles.selectionBadge}>
+                        <Text style={styles.selectionBadgeText}>✓</Text>
+                    </View>
+                )}
                 <View style={[styles.shimmerStrip, { backgroundColor: colors.accent + '18' }]} />
 
-                {/* inner card */}
                 <View style={[styles.innerCardStatic, { backgroundColor: colors.bg }]}>
-
-                    {/* ── TOP BAR ── */}
                     <View style={[styles.topBar, { backgroundColor: colors.accent + '22', borderBottomColor: colors.accent + '55' }]}>
                         <Text style={[styles.pokeName, { color: Colors.white }]} numberOfLines={1}>
                             {pokemon.nome}
@@ -136,7 +237,6 @@ export default function Dashboard() {
                         </View>
                     </View>
 
-                    {/* ── IMAGE AREA ── */}
                     <View style={[
                         styles.imageWrapper,
                         { borderColor: colors.accent + '33', backgroundColor: colors.accent + '0A' },
@@ -150,7 +250,6 @@ export default function Dashboard() {
                         />
                     </View>
 
-                    {/* ── FOOTER: tipos + index ── */}
                     <View style={[styles.footerRow, { borderTopColor: colors.accent + '33' }]}>
                         <View style={styles.typesRow}>
                             {ptTypes.map(t => (
@@ -163,7 +262,6 @@ export default function Dashboard() {
                         <Text style={[styles.indexNumber, { color: colors.accent + 'BB' }]}>#{pokemon.index}</Text>
                     </View>
 
-                    {/* ── PODERES ── */}
                     <View style={[styles.statsSection, { borderTopColor: colors.accent + '22' }]}>
                         {pokemon.poderes.map((poder: Poder) => (
                             <View key={poder.nome} style={styles.statRow}>
@@ -182,11 +280,12 @@ export default function Dashboard() {
                     </View>
                 </View>
 
-                {/* outer glow ring */}
                 <View style={[styles.glowRing, { borderColor: colors.accent + '22' }]} />
-            </View>
+            </TouchableOpacity>
         );
     };
+
+    const hasSelection = selectedCaptured !== null || selectedTeamIdx !== null;
 
     return (
         <View style={styles.wrapper}>
@@ -196,12 +295,26 @@ export default function Dashboard() {
                 style={styles.scroll}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}>
-                
+
                 <View style={styles.sectionHeader}>
                     <View style={styles.sectionAccent} />
                     <Text style={styles.sectionTitle}>MEU TIME</Text>
                     {!loading && <Text style={styles.sectionSub}>{myTeam.length} selecionados</Text>}
+                    {saving && <ActivityIndicator size="small" color={Colors.btnPrimary} style={styles.savingIndicator} />}
                 </View>
+
+                {hasSelection && (
+                    <View style={styles.hintBar}>
+                        <Text style={styles.hintText}>
+                            {selectedCaptured
+                                ? `Toque em um slot do time para substituir por ${selectedCaptured.nome}`
+                                : 'Toque em outro Pokémon do time para trocar a posição'}
+                        </Text>
+                        <TouchableOpacity onPress={clearSelection} style={styles.hintCancel}>
+                            <Text style={styles.hintCancelText}>✕</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
 
                 {!loading && (
                     <ScrollView
@@ -212,7 +325,7 @@ export default function Dashboard() {
                         snapToInterval={MY_TEAM_CARD_WIDTH + CARD_GAP}
                         snapToAlignment="start"
                     >
-                        {myTeam.map(pokemon => renderMyTeamCard(pokemon))}
+                        {myTeam.map((pokemon, index) => renderMyTeamCard(pokemon, index))}
                         <View style={styles.horizontalEnd} />
                     </ScrollView>
                 )}
@@ -280,8 +393,78 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
         marginLeft: 'auto',
     },
+    savingIndicator: {
+        marginLeft: 8,
+    },
 
-    /* ── Meu Time ── */
+    /* Hint bar */
+    hintBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginHorizontal: 16,
+        marginBottom: 10,
+        backgroundColor: Colors.surfaceCard,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: Colors.primaryAlpha['25'],
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        gap: 8,
+    },
+    hintText: {
+        flex: 1,
+        color: Colors.whiteAlpha['65'],
+        fontSize: isWeb ? 11 : 10,
+        fontWeight: '600',
+        letterSpacing: 0.3,
+    },
+    hintCancel: {
+        width: 22,
+        height: 22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: Colors.surfaceHighlight,
+        borderRadius: 11,
+    },
+    hintCancelText: {
+        color: Colors.whiteAlpha['55'],
+        fontSize: 11,
+        fontWeight: '800',
+    },
+
+    /* Selection states */
+    selectedCard: {
+        borderWidth: 3,
+        ...(Platform.OS !== 'web'
+            ? { shadowOpacity: 0.9, shadowRadius: 16 }
+            : {} as any),
+    },
+    swapTargetCard: {
+        borderWidth: 2,
+        borderColor: Colors.game.win,
+    },
+    selectionBadge: {
+        position: 'absolute',
+        top: 4,
+        right: 4,
+        zIndex: 10,
+        backgroundColor: Colors.btnPrimary,
+        borderRadius: 10,
+        width: 20,
+        height: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    swapBadge: {
+        backgroundColor: Colors.game.win,
+    },
+    selectionBadgeText: {
+        color: Colors.white,
+        fontSize: 11,
+        fontWeight: '900',
+    },
+
+    /* Meu Time */
     selectedList: {
         paddingHorizontal: GRID_H_PAD,
         paddingBottom: 8,
@@ -289,12 +472,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         flexGrow: 1,
     },
-
     horizontalEnd: {
         width: 10,
     },
 
-    /* ── Grid ── */
+    /* Grid */
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -302,7 +484,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
 
-    /* ── Meu Time card (apenas nome + HP) ── */
+    /* Meu Time card */
     myTeamCard: {
         width: MY_TEAM_CARD_WIDTH,
         height: MY_TEAM_CARD_HEIGHT,

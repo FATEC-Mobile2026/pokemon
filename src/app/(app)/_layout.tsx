@@ -3,6 +3,7 @@ import { ActivityIndicator, View } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
 import { Colors } from "@/constants/colors";
+import { BattleProvider } from "@/context/BattleContext";
 
 export default function AppLayout() {
     const { isAuthenticated, isLoading } = useAuth();
@@ -19,5 +20,12 @@ export default function AppLayout() {
         return <Redirect href="/" />;
     }
 
-    return <Stack screenOptions={{headerShown: false}} />;
+    return (
+        <BattleProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="battle-arena" options={{ gestureEnabled: false }} />
+                <Stack.Screen name="new-pokemon" options={{ gestureEnabled: false }} />
+            </Stack>
+        </BattleProvider>
+    );
 }

@@ -31,8 +31,6 @@ export default function Perfil() {
         load();
     }, [user, userRepository]);
 
-    const total = (stats?.vitorias ?? 0) + (stats?.derrotas ?? 0);
-
     return (
         <View style={styles.wrapper}>
             <Header />
@@ -75,7 +73,7 @@ export default function Perfil() {
                                     <Text style={styles.statLabel}>Vitórias</Text>
                                 </View>
                                 <Text style={[styles.statValue, styles.win]}>
-                                    {stats?.vitorias ?? 0}{total > 0 ? `/${total}` : ''}
+                                    {stats?.vitorias ?? 0}
                                 </Text>
                             </View>
 
@@ -88,7 +86,7 @@ export default function Perfil() {
                                     <Text style={styles.statLabel}>Derrotas</Text>
                                 </View>
                                 <Text style={[styles.statValue, styles.loss]}>
-                                    {stats?.derrotas ?? 0}{total > 0 ? `/${total}` : ''}
+                                    {stats?.derrotas ?? 0}
                                 </Text>
                             </View>
                         </View>

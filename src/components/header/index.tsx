@@ -33,24 +33,29 @@ function HamburgerIcon({ color = Colors.white }: { color?: string }) {
 const size = Platform.OS === 'web' ? 28 : 22;
 
 const MENU_ITEMS = [
-    { 
-        label: 'Inicio', 
+    {
+        label: 'Inicio',
         icon: () => <Pokeball size={size} />,
         route: '/(app)/dashboard' as const },
-    { 
-        label: 'Perfil',  
-        icon: '👤', 
-        route: '/(app)/perfil' as const 
+    {
+        label: 'Perfil',
+        icon: '👤',
+        route: '/(app)/perfil' as const
     },
-    { 
-        label: 'Pokédex', 
-        icon: '📖', 
-        route: '/(app)/pokedex' as const 
+    {
+        label: 'Pokédex',
+        icon: '📖',
+        route: '/(app)/pokedex' as const
     },
-    { 
-        label: 'Batalha', 
-        icon: '⚔️', 
-        route: '/(app)/new-pokemon' as const 
+    {
+        label: 'Batalha',
+        icon: '⚔️',
+        route: '/(app)/battle' as const
+    },
+    {
+        label: 'PVP',
+        icon: '🎮',
+        route: '/(app)/battle-pvp' as const,
     },
 ] as const;
 
@@ -98,13 +103,11 @@ export function Header({ showGreeting = false }: Props) {
     return (
         <>
             <View style={[styles.header, { paddingTop: isWeb ? 28 : insets.top + 12 }]}>
-                {showGreeting ? (
+                {showGreeting && (
                     <View style={styles.headerLeft}>
                         <Text style={styles.welcomeLabel}>Olá,</Text>
                         <Text style={styles.welcomeName}>{user}</Text>
                     </View>
-                ) : (
-                    <View />
                 )}
 
                 <TouchableOpacity onPress={openMenu} style={styles.menuBtn} activeOpacity={0.7}>
@@ -173,7 +176,8 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-end',
+        gap: 12,
         paddingHorizontal: isWeb ? 28 : 20,
         paddingBottom: 8,
     },
