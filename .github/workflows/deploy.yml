@@ -34,7 +34,22 @@ jobs:
 
       - name: Prepare static deploy config
         run: |
-          echo '{"framework":null,"buildCommand":null,"installCommand":null}' > ./dist/vercel.json
+          cat > ./dist/vercel.json << 'EOF'
+          {
+            "framework": null,
+            "buildCommand": null,
+            "installCommand": null,
+            "headers": [
+              {
+                "source": "/(.*)\\.wasm",
+                "headers": [{ "key": "Content-Type", "value": "application/wasm" }]
+              }
+            ],
+            "rewrites": [
+              { "source": "/((?!assets|_expo|favicon\\.ico|.*\\.html|.*\\.js|.*\\.css|.*\\.wasm|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ttf|.*\\.json).*)", "destination": "/index.html" }
+            ]
+          }
+          EOF
 
       - name: Deploy to Vercel
         run: vercel deploy ./dist --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
