@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /Volumes/Externo/Project/fatec/mobile/pokemon ls-files --error-unmatch .vercel)"
+    ]
+  }
+}
