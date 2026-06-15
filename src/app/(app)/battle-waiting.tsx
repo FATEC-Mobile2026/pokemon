@@ -23,6 +23,7 @@ export default function BattleWaiting() {
   // Rastreia se já estivemos em pending_sent para não confundir status idle
   // inicial (race condition de navegação) com uma recusa real do oponente
   const hasSentRef = useRef(false);
+  const navigatedRef = useRef(false);
 
   const spinAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -35,6 +36,14 @@ export default function BattleWaiting() {
       setDeclined(true);
     }
   }, [status, declined]);
+
+  // Safety-net: navigate to arena when battle starts (works from inside the Stack)
+  useEffect(() => {
+    if (status === 'in_progress' && !navigatedRef.current) {
+      navigatedRef.current = true;
+      router.replace('/battle-arena' as any);
+    }
+  }, [status, router]);
 
   // Spinner animation
   useEffect(() => {

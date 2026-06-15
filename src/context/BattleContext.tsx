@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { router as globalRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { useAuth } from '@/context/AuthContext';
 import { useBattleSocket } from '@/hooks/useBattleSocket';
@@ -94,7 +94,6 @@ const BattleContext = createContext<BattleContextValue>({} as BattleContextValue
 
 export function BattleProvider({ children }: { children: React.ReactNode }) {
   const { user, userId } = useAuth();
-  const router = useRouter();
   const { isConnected, lastEvent, send } = useBattleSocket(user);
 
   const [state, setState] = useState<BattleState>(INITIAL_STATE);
@@ -107,18 +106,13 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
 
-  // Stable router ref to avoid effect re-running on router reference changes
-  const routerRef = useRef(router);
-  routerRef.current = router;
-
   // ── Handle incoming WebSocket events ───────────────────────────────────────
 
   useEffect(() => {
     if (!lastEvent?.type) return;
     const ev = lastEvent;
-    const nav = routerRef.current;
 
-    console.log('[Battle] processando evento:', ev.type, JSON.stringify(ev));
+    console.log('[Battle] processando evento:', ev.type);
 
     switch (ev.type as string) {
       case 'BATTLE_REQUEST':
@@ -155,7 +149,7 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
         const p2 = ev.player2 as { username: string; team: BattlePokemon[] } | undefined;
 
         if (!p1 || !p2) {
-          console.warn('[Battle] BATTLE_START sem player1/player2 — navegando sem dados de time. ev:', JSON.stringify(ev));
+          console.warn('[Battle] BATTLE_START sem player1/player2:', JSON.stringify(ev));
           setState(s => ({
             ...s,
             status: 'in_progress',
@@ -165,7 +159,8 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
             rounds: [],
             result: null,
           }));
-          nav.push('/(app)/battle-arena' as any);
+          console.log('[Battle] navegando para battle-arena (sem times)');
+          globalRouter.push('/battle-arena' as any);
           break;
         }
 
@@ -182,7 +177,8 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
           rounds: [],
           result: null,
         }));
-        nav.push('/(app)/battle-arena' as any);
+        console.log('[Battle] navegando para battle-arena');
+        globalRouter.push('/battle-arena' as any);
         break;
       }
 
@@ -220,7 +216,7 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
           opponentWins: ev.scores?.[s.opponentUsername ?? ''] ?? s.opponentWins,
           result: { won, pokemonId: won ? pokemonId : null },
         }));
-        nav.push(won ? ('/(app)/new-pokemon' as any) : ('/(app)/battle-result' as any));
+        globalRouter.push(won ? ('/new-pokemon' as any) : ('/battle-result' as any));
         break;
       }
 
@@ -266,8 +262,8 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
     const bid = stateRef.current.battleId;
     if (!bid) return;
     handleDecline(bid);
-    router.back();
-  }, [handleDecline, router]);
+    globalRouter.back();
+  }, [handleDecline]);
 
   const resetBattle = useCallback(() => {
     setState(INITIAL_STATE);
