@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { useBattle } from '@/context/BattleContext';
@@ -17,6 +18,7 @@ const isWeb = Platform.OS === 'web';
 
 export default function BattleResult() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { result, myWins, opponentWins, opponentUsername, resetBattle } = useBattle();
 
   const entryAnim = useRef(new Animated.Value(0)).current;
@@ -39,7 +41,13 @@ export default function BattleResult() {
   return (
     <View style={styles.wrapper}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: (insets.top || (Platform.OS === 'ios' ? 44 : 24)) + 20,
+            paddingBottom: (insets.bottom || 0) + 32,
+          },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Result header */}
@@ -108,7 +116,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 64 : 32,
     paddingBottom: 32,
     alignItems: 'center',
     gap: 20,

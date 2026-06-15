@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
 import { useBattle } from '@/context/BattleContext';
@@ -16,6 +17,7 @@ const isWeb = Platform.OS === 'web';
 
 export default function BattleWaiting() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { status, opponentUsername, declineBattle } = useBattle();
   const [declined, setDeclined] = useState(false);
   // Rastreia se já estivemos em pending_sent para não confundir status idle
@@ -74,7 +76,7 @@ export default function BattleWaiting() {
   if (declined) {
     return (
       <View style={styles.wrapper}>
-        <View style={styles.content}>
+        <View style={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
           <Text style={styles.declinedEmoji}>💀</Text>
           <Text style={styles.declinedTitle}>DESAFIO RECUSADO</Text>
           <Text style={styles.declinedSub}>
@@ -94,7 +96,7 @@ export default function BattleWaiting() {
 
   return (
     <View style={styles.wrapper}>
-      <View style={styles.content}>
+      <View style={[styles.content, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <Animated.View
           style={[
             styles.spinnerRing,

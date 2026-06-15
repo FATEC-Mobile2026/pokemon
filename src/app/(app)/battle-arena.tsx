@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, getColor } from '@/constants/colors';
 import { TYPE_MAP, TYPE_ICONS, STAT_ABBR } from '@/constants/pokemon';
 import { useBattle, BattlePokemon, RoundResult } from '@/context/BattleContext';
@@ -33,6 +34,7 @@ function getAbilities(p: BattlePokemon): Array<{ name: string; strength: number 
 }
 
 export default function BattleArena() {
+  const insets = useSafeAreaInsets();
   const {
     myUsername,
     opponentUsername,
@@ -286,7 +288,7 @@ export default function BattleArena() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Score bar */}
-        <View style={styles.scoreBar}>
+        <View style={[styles.scoreBar, { marginTop: insets.top || (Platform.OS === 'ios' ? 44 : 24) }]}>
           <View style={styles.scoreItem}>
             <Text style={[styles.scoreNum, { color: Colors.game.win }]}>{myWins}</Text>
             <Text style={styles.scoreLabel}>VOCÊ</Text>
@@ -429,7 +431,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceCard,
     borderBottomWidth: 1,
     borderBottomColor: Colors.whiteAlpha['08'],
-    marginTop: Platform.OS === 'ios' ? 52 : 16,
   },
   scoreItem: {
     alignItems: 'center',
