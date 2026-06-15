@@ -107,11 +107,18 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
 
+  // Stable router ref to avoid effect re-running on router reference changes
+  const routerRef = useRef(router);
+  routerRef.current = router;
+
   // ── Handle incoming WebSocket events ───────────────────────────────────────
 
   useEffect(() => {
     if (!lastEvent?.type) return;
     const ev = lastEvent;
+    const nav = routerRef.current;
+
+    console.log('[Battle] processando evento:', ev.type, JSON.stringify(ev));
 
     switch (ev.type as string) {
       case 'BATTLE_REQUEST':
@@ -146,10 +153,22 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
       case 'BATTLE_START': {
         const p1 = ev.player1 as { username: string; team: BattlePokemon[] } | undefined;
         const p2 = ev.player2 as { username: string; team: BattlePokemon[] } | undefined;
+
         if (!p1 || !p2) {
-          console.error('[Battle] BATTLE_START sem player1/player2');
+          console.warn('[Battle] BATTLE_START sem player1/player2 — navegando sem dados de time. ev:', JSON.stringify(ev));
+          setState(s => ({
+            ...s,
+            status: 'in_progress',
+            currentRound: 1,
+            myWins: 0,
+            opponentWins: 0,
+            rounds: [],
+            result: null,
+          }));
+          nav.push('/(app)/battle-arena' as any);
           break;
         }
+
         const isPlayer1 = p1.username === userRef.current;
         setState(s => ({
           ...s,
@@ -163,7 +182,7 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
           rounds: [],
           result: null,
         }));
-        router.push('/(app)/battle-arena' as any);
+        nav.push('/(app)/battle-arena' as any);
         break;
       }
 
@@ -201,7 +220,7 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
           opponentWins: ev.scores?.[s.opponentUsername ?? ''] ?? s.opponentWins,
           result: { won, pokemonId: won ? pokemonId : null },
         }));
-        router.push(won ? ('/(app)/new-pokemon' as any) : ('/(app)/battle-result' as any));
+        nav.push(won ? ('/(app)/new-pokemon' as any) : ('/(app)/battle-result' as any));
         break;
       }
 
@@ -212,7 +231,8 @@ export function BattleProvider({ children }: { children: React.ReactNode }) {
       default:
         break;
     }
-  }, [lastEvent, router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastEvent]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 

@@ -36,13 +36,6 @@ export default function BattleWaiting() {
     }
   }, [status, declined]);
 
-  // Redirect if battle starts (handled by BattleContext, but double-check)
-  useEffect(() => {
-    if (status === 'in_progress') {
-      router.replace('/(app)/battle-arena' as any);
-    }
-  }, [status, router]);
-
   // Spinner animation
   useEffect(() => {
     const spin = Animated.loop(

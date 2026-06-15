@@ -291,3 +291,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.3,
     },
 });
+
+
+
+websocat --insecure "wss://pokemon-battle.duckdns.org/ws/battle?username=kleber"

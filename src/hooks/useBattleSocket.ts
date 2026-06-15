@@ -11,6 +11,22 @@ const BACKOFF_MS = [1000, 3000, 9000];
 
 export type BattleSocketEvent = { type: string; payload: string } & Record<string, any>;
 
+function parseWsMessage(text: string): BattleSocketEvent | null {
+  const colonIdx = text.indexOf(':');
+  if (colonIdx === -1) {
+    console.log('[WS] mensagem sem payload:', text);
+    return null;
+  }
+  const type = text.substring(0, colonIdx);
+  const payload = text.substring(colonIdx + 1);
+  let extra: Record<string, any> = {};
+  try {
+    const parsed = JSON.parse(payload);
+    if (parsed && typeof parsed === 'object') extra = parsed;
+  } catch {}
+  return { type, payload, ...extra };
+}
+
 export function useBattleSocket(username: string | null) {
   const [isConnected, setIsConnected] = useState(false);
   const [lastEvent, setLastEvent] = useState<BattleSocketEvent | null>(null);
@@ -22,6 +38,9 @@ export function useBattleSocket(username: string | null) {
   const shouldConnect = useRef(false);
   const usernameRef = useRef(username);
   usernameRef.current = username;
+
+  // Pending timer refs so we can clear them on unmount
+  const pendingTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const clearRetry = useCallback(() => {
     if (retryTimer.current) {
@@ -50,22 +69,15 @@ export function useBattleSocket(username: string | null) {
     ws.onmessage = ({ data }) => {
       if (!mounted.current) return;
       try {
-        const text = data as string;
-        const colonIdx = text.indexOf(':');
-        if (colonIdx === -1) {
-          console.log('[WS] mensagem sem payload:', text);
-          return;
-        }
-        const type = text.substring(0, colonIdx);
-        const payload = text.substring(colonIdx + 1);
-        let extra: Record<string, any> = {};
-        try {
-          const parsed = JSON.parse(payload);
-          if (parsed && typeof parsed === 'object') extra = parsed;
-        } catch {}
-        const event = { type, payload, ...extra };
-        console.log('[WS] evento recebido:', event);
-        setLastEvent(event);
+        const event = parseWsMessage(data as string);
+        if (!event) return;
+        console.log('[WS] evento recebido:', event.type, event.payload?.substring(0, 120));
+        // Each message in its own macrotask so React 18 automatic batching
+        // cannot merge multiple rapid WS events into a single render.
+        const t = setTimeout(() => {
+          if (mounted.current) setLastEvent(event);
+        }, 0);
+        pendingTimers.current.push(t);
       } catch {}
     };
 
@@ -132,6 +144,8 @@ export function useBattleSocket(username: string | null) {
       shouldConnect.current = false;
       clearRetry();
       wsRef.current?.close();
+      pendingTimers.current.forEach(clearTimeout);
+      pendingTimers.current = [];
     };
   }, [clearRetry]);
 
