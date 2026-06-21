@@ -291,7 +291,7 @@ export default function Dashboard() {
 
                 <View style={styles.sectionHeader}>
                     <View style={styles.sectionAccent} />
-                    <Text style={styles.sectionTitle}>MEU TIME</Text>
+                    <Text style={styles.sectionTitle}>POK DEX</Text>
                     {!loading && <Text style={styles.sectionSub}>{myTeam.length} selecionados</Text>}
                     {saving && <ActivityIndicator size="small" color={Colors.btnPrimary} style={styles.savingIndicator} />}
                 </View>
