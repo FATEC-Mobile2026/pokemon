@@ -3,12 +3,12 @@ import { View, Text, StyleSheet, Platform, Image, ActivityIndicator } from 'reac
 import { Header } from '@/components/header';
 import { Colors } from '@/constants/colors';
 import { getStats, StatsResponse } from '@/integration/authIntegration';
-import { useAuth } from '@/context/AuthContext';
+import { useAuthCookie } from '@/context/AuthCookieContext';
 
 const isWeb = Platform.OS === 'web';
 
 export default function Perfil() {
-    const { user, userId } = useAuth();
+    const { user, userId } = useAuthCookie();
     const [stats, setStats] = useState<StatsResponse | null>(null);
     const [loading, setLoading] = useState(true);
 

@@ -1,12 +1,12 @@
 import { Stack, Redirect } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuthCookie } from "@/context/AuthCookieContext";
 import { Colors } from "@/constants/colors";
 import { BattleProvider } from "@/context/BattleContext";
 
 export default function AppLayout() {
-    const { isAuthenticated, isLoading } = useAuth();
+    const { isAuthenticated, isLoading } = useAuthCookie();
 
     if (isLoading) {
         return (

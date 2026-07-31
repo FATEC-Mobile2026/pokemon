@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
+import { useAuthCookie } from '@/context/AuthCookieContext';
 
 import {
     View,
@@ -30,7 +30,7 @@ export default function Index() {
         type: 'error' as 'success' | 'error' | 'warning' | 'info',
     });
 
-    const { signIn, signOut } = useAuth();
+    const { signIn, signOut } = useAuthCookie();
 
     async function validateCredentials() {
         if (!name.trim() || !senha.trim()) {

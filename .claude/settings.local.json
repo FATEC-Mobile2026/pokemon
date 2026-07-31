@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git -C /Volumes/Externo/Project/fatec/mobile/pokemon ls-files --error-unmatch .vercel)"
+      "Bash(git -C /Volumes/Externo/Project/fatec/mobile/pokemon ls-files --error-unmatch .vercel)",
+      "Bash(curl -s -i -X POST http://localhost:8082/fatec/login/v1/auth/logout)"
     ]
   }
 }

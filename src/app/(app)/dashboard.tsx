@@ -13,7 +13,7 @@ import {
 import { Header } from '@/components/header';
 import { PokeballLoading } from '@/components/pokeball-loading';
 import { getTeam, updateTeam } from '@/integration/teamIntegration';
-import { useAuth } from '@/context/AuthContext';
+import { useAuthCookie } from '@/context/AuthCookieContext';
 import { Pokemon, Poder } from '@/@types/pokemon';
 import { getColor, Colors } from '@/constants/colors';
 import { TYPE_MAP, TYPE_ICONS, STAT_ABBR } from '@/constants/pokemon';
@@ -31,7 +31,7 @@ const MY_TEAM_CARD_HEIGHT = 118;
 
 export default function Dashboard() {
     const { width } = useWindowDimensions();
-    const { user, userId } = useAuth();
+    const { user, userId } = useAuthCookie();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [myTeam, setMyTeam] = useState<Pokemon[]>([]);

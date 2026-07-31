@@ -6,7 +6,7 @@ import {
 import { Header } from '@/components/header';
 import { Colors, getColor } from '@/constants/colors';
 import { getTeam } from '@/integration/teamIntegration';
-import { useAuth } from '@/context/AuthContext';
+import { useAuthCookie } from '@/context/AuthCookieContext';
 import { Pokemon } from '@/@types/pokemon';
 import { TYPE_MAP, STAT_ABBR } from '@/constants/pokemon';
 import { PokeballLoading } from '@/components/pokeball-loading';
@@ -107,7 +107,7 @@ const OPPONENT_TEAM: Pokemon[] = [
 ];
 
 export default function Battle() {
-    const { userId } = useAuth();
+    const { userId } = useAuthCookie();
 
     const [loading, setLoading] = useState(true);
     const [team, setTeam] = useState<Pokemon[]>([]);

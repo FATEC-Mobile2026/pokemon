@@ -1,10 +1,7 @@
-import axios from 'axios';
 import { Pokemon } from '../@types/pokemon';
+import { createApi } from './httpClient';
 
-const api = axios.create({
-  baseURL: `${process.env.EXPO_PUBLIC_API_URL}/api-pokemon/pokemon/v1`,
-});
-
+const api = createApi(`${process.env.EXPO_PUBLIC_API_URL}/api-pokemon/pokemon/v1`);
 
 type ApiPokemon = {
   index: string;

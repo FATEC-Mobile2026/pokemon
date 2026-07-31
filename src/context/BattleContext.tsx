@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 import { router as globalRouter } from 'expo-router';
 import { Colors } from '@/constants/colors';
-import { useAuth } from '@/context/AuthContext';
+import { useAuthCookie } from '@/context/AuthCookieContext';
 import { useBattleSocket } from '@/hooks/useBattleSocket';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -93,7 +93,7 @@ const BattleContext = createContext<BattleContextValue>({} as BattleContextValue
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export function BattleProvider({ children }: { children: React.ReactNode }) {
-  const { user, userId } = useAuth();
+  const { user, userId } = useAuthCookie();
   const { isConnected, lastEvent, send } = useBattleSocket(user);
 
   const [state, setState] = useState<BattleState>(INITIAL_STATE);

@@ -13,7 +13,7 @@ import {
 
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAuth } from '@/context/AuthContext';
+import { useAuthCookie } from '@/context/AuthCookieContext';
 import { Pokeball } from '@/components/pokeball';
 import { Colors } from '@/constants/colors';
 
@@ -64,7 +64,7 @@ type Props = {
 };
 
 export function Header({ showGreeting = false }: Props) {
-    const { user, signOut } = useAuth();
+    const { user, signOut } = useAuthCookie();
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const [menuOpen, setMenuOpen] = useState(false);

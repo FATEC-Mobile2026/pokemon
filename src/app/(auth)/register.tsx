@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
+import { useAuthCookie } from '@/context/AuthCookieContext';
 
 import {
     View,
@@ -19,6 +19,8 @@ import { Colors } from '@/constants/colors';
 
 export default function Register() {
     const [nome, setNome] = useState('');
+    const [email, setEmail] = useState('');
+    const [cep, setCep] = useState('');
     const [senha, setSenha] = useState('');
     const [confirmacaoSenha, setConfirmacaoSenha] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -30,7 +32,7 @@ export default function Register() {
         type: 'error' as 'success' | 'error' | 'warning' | 'info',
     });
 
-    const { signUp } = useAuth();
+    const { signUp } = useAuthCookie();
 
     function showAlert(title: string, message: string, type: typeof alertData.type) {
         setAlertData({ title, message, type });
@@ -38,7 +40,7 @@ export default function Register() {
     }
 
     async function handleRegister() {
-        if (!nome.trim() || !senha.trim() || !confirmacaoSenha.trim()) {
+        if (!nome.trim() || !email.trim() || !cep.trim() || !senha.trim() || !confirmacaoSenha.trim()) {
             showAlert('Campos obrigatórios', 'Preencha todos os campos.', 'warning');
             return;
         }
@@ -54,7 +56,13 @@ export default function Register() {
         }
 
         setIsLoading(true);
-        const result = await signUp(nome, senha);
+        const result = await signUp({
+            username: nome.trim(),
+            password: senha.trim(),
+            email: email.trim(),
+            cep: cep.trim(),
+            roles: ['ADMIN'],
+        });
         setIsLoading(false);
 
         if (!result.ok) {
@@ -100,6 +108,29 @@ export default function Register() {
                             onChangeText={setNome}
                             value={nome}
                             autoCorrect={false}
+                        />
+                    </View>
+
+                    <View style={styles.fieldGroup}>
+                        <Text style={styles.label}>Email</Text>
+                        <Input
+                            placeholder=""
+                            onChangeText={setEmail}
+                            value={email}
+                            autoCorrect={false}
+                            keyboardType="email-address"
+                            autoCapitalize="none"
+                        />
+                    </View>
+
+                    <View style={styles.fieldGroup}>
+                        <Text style={styles.label}>CEP</Text>
+                        <Input
+                            placeholder=""
+                            onChangeText={setCep}
+                            value={cep}
+                            autoCorrect={false}
+                            keyboardType="numeric"
                         />
                     </View>
 

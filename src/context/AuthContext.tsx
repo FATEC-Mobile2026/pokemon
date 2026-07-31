@@ -1,15 +1,19 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { login as loginApi, register as registerApi } from "@/integration/authIntegration";
+import { router } from "expo-router";
+import { login as loginApi, register as registerApi, RegisterRequest } from "@/integration/authIntegration";
+import { setUnauthorizedHandler } from "@/integration/httpClient";
+import { decodeToken, isTokenExpired } from "@/utils/jwt";
 
 type AuthContextData = {
     isAuthenticated: boolean;
     user: string | null;
     token: string | null;
     userId: string | null;
+    roles: string[];
     isLoading: boolean;
     signIn: (username: string, password: string) => Promise<{ ok: boolean; userId?: string }>;
-    signUp: (username: string, password: string) => Promise<{ ok: boolean; userId?: string; error?: string }>;
+    signUp: (data: RegisterRequest) => Promise<{ ok: boolean; error?: string }>;
     signOut: () => void;
 };
 
@@ -20,44 +24,66 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [userId, setUserId] = useState<string | null>(null);
+    const [roles, setRoles] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    async function persistSession(newToken: string) {
+        const payload = decodeToken(newToken);
+        setUser(payload.sub);
+        setUserId(payload.sub);
+        setRoles(payload.roles ?? []);
+        setToken(newToken);
+        setIsAuthenticated(true);
+        await AsyncStorage.setItem("@Auth:user", payload.sub);
+        await AsyncStorage.setItem("@Auth:token", newToken);
+        await AsyncStorage.setItem("@Auth:userId", payload.sub);
+    }
+
+    async function clearSession() {
+        setUser(null);
+        setToken(null);
+        setUserId(null);
+        setRoles([]);
+        setIsAuthenticated(false);
+        await AsyncStorage.removeItem("@Auth:user");
+        await AsyncStorage.removeItem("@Auth:token");
+        await AsyncStorage.removeItem("@Auth:userId");
+    }
 
     useEffect(() => {
         async function loadStorageData() {
-            const storageUser = await AsyncStorage.getItem("@Auth:user");
             const storageToken = await AsyncStorage.getItem("@Auth:token");
-            const storageUserId = await AsyncStorage.getItem("@Auth:userId");
-            if (storageUser) {
-                setUser(storageUser);
-                setIsAuthenticated(true);
+            if (storageToken && !isTokenExpired(storageToken)) {
+                await persistSession(storageToken);
+            } else if (storageToken) {
+                await clearSession();
             }
-            if (storageToken) setToken(storageToken);
-            if (storageUserId) setUserId(storageUserId);
             setIsLoading(false);
         }
         loadStorageData();
     }, []);
 
+    useEffect(() => {
+        setUnauthorizedHandler(() => {
+            clearSession();
+            router.replace("/");
+        });
+    }, []);
+
     async function signIn(username: string, password: string): Promise<{ ok: boolean; userId?: string }> {
         try {
             const response = await loginApi({ username, password });
-            setUser(username.trim());
-            setIsAuthenticated(true);
-            setToken(response.token);
-            setUserId(response.userId);
-            await AsyncStorage.setItem("@Auth:user", username.trim());
-            await AsyncStorage.setItem("@Auth:token", response.token);
-            await AsyncStorage.setItem("@Auth:userId", response.userId);
-            return { ok: true, userId: response.userId };
+            await persistSession(response.token);
+            return { ok: true, userId: decodeToken(response.token).sub };
         } catch {
             return { ok: false };
         }
     }
 
-    async function signUp(username: string, password: string): Promise<{ ok: boolean; userId?: string; error?: string }> {
+    async function signUp(data: RegisterRequest): Promise<{ ok: boolean; error?: string }> {
         try {
-            const response = await registerApi({ username, password });
-            return { ok: true, userId: response.userId };
+            await registerApi(data);
+            return { ok: true };
         } catch (err: any) {
             const message = err?.response?.data?.message ?? 'Não foi possível criar o usuário.';
             return { ok: false, error: message };
@@ -65,17 +91,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     async function signOut() {
-        setUser(null);
-        setToken(null);
-        setUserId(null);
-        setIsAuthenticated(false);
-        await AsyncStorage.removeItem("@Auth:user");
-        await AsyncStorage.removeItem("@Auth:token");
-        await AsyncStorage.removeItem("@Auth:userId");
+        await clearSession();
     }
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, token, userId, signIn, signUp, signOut, isLoading }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, token, userId, roles, signIn, signUp, signOut, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/context/AuthContext";
+import { AuthCookieProvider } from "@/context/AuthCookieContext";
 import { Slot } from "expo-router";
 import { Platform } from "react-native";
 import { useEffect } from "react";
@@ -15,7 +16,9 @@ export default function Root() {
 
     return (
         <AuthProvider>
-            <Slot />
+            <AuthCookieProvider>
+                <Slot />
+            </AuthCookieProvider>
         </AuthProvider>
     );
 }
